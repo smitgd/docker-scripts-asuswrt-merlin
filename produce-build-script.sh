@@ -6,14 +6,16 @@ cat <<EOF > "build-script.sh"
 set -euo pipefail
 IFS=\$'\n\t'
 
+# Project root in docker container (mapped to project root in host with
+# docker run --volume parameter). Note: expanded to actual value here due to 
+# unquoted EOF above.
+MROOT=${MROOT}
+
 EOF
 
 # Note: EOF is quoted to prevent substitutions here.
 cat <<'EOF' >> "build-script.sh"
 
-# Project root in docker contain (mapped to project root in host with
-# docker run --volume parameter).
-MROOT="/asuswrt-merlin-root"
 
 # Fix-ups needed because of different version of autotools 
 # Skipped if already done, i.e., configure.in moved to configure.ac 
@@ -91,7 +93,7 @@ PATH=$PATH:/opt/brcm/hndtools-mipsel-linux/bin:/opt/brcm/hndtools-mipsel-uclibc/
 
 MAKE_CLEAN_STRING=""
 MAKE_CLEANKERNEL_STRING=""
-do_build=""
+do_build="n"
 
 while [ $# -gt 0 ]
 do
@@ -137,7 +139,7 @@ do
       shift 2
       ;;
     --do-build-rt-ac56u)
-      do_buildu="$2"
+      do_build="$2"
       router="rt-ac56u"
       router_dir=src-rt-6.x.4708
       shift 2
