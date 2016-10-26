@@ -1,11 +1,20 @@
 This assists with asuswrt-merlin builds in a standardized environment using 
 a docker container.
 
-Currently tested only on Linux and requires that docker and git be installed.
-Also, requires that the build machine is an intel 64-bit processor since this
-uses a 64-bit docker image.
-
-Currently, a one-time build of a docker image based on ubuntu:xenial from
+Scripts are working only on Linux (currently) and require that docker and git 
+be installed. Also, requires that the build machine is an intel 64-bit processor
+since this uses a 64-bit docker image.
+```
+Tried to build on OSX 10.9.5 (Mavericks) using boot2docker which uses and 
+installs VirtualBox. Unfortunately there is a unfixed bug in VirtualBox that 
+prevents hard and symbolic links from being made. At least one router software 
+component (e2fsprogs) creates hard links and fails with "Operation not allowed" 
+during the build. Boot2docker (part of Docker Toolbox) is deprecated and 
+replaced with "Docker for Mac" which no longer uses VirtualBox (uses "xhyve" 
+instead) so it *may* work. However, it requires newer OSX and newer hardware so
+I am unable to test it.
+```
+A one-time build of a docker image based on ubuntu:xenial from
 docker hub is required using the Dockerfile of this project. From this project
 directory containing the Dockerfile run:
 ```
@@ -44,11 +53,11 @@ It is important that asuswrt-merlin project be under git control since the
 One or more (or all) supported routers can be built with one script execution 
 such as these examples:
 ```
-$ ./build-asuswrt-merlin.sh clean rt-ac5300 cleankernel clean rt-ac56u
+$ ./build-asuswrt-merlin.sh clean rt-ac5300 cleankernel clean clean-src rt-ac56u
 $ ./build-asuswrt-merlin.sh rt-n66u 
 $ ./build-asuswrt-merlin.sh all 
 ```
 See "./build-asuswrt-merlin.sh help" for more details. Optional user selected 
 "clean" action(s) must precede the router name being built. The "all" option 
-automatically does the necessary clean actions before each supported router 
-is built and should be the only option when used.
+automatically does pre-determined clean actions before each supported router 
+is built and should be the only option when it is used.
