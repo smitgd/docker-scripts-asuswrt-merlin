@@ -3,9 +3,10 @@ a docker container.
 
 The script works with Linux (tested on Fedora 23 and Debian Stretch/Testing) and
 requires that docker and git be installed. It also, requires that the build 
-machine is an Intel/AMD 64-bit processor since this uses a 64-bit docker image.
-Instructions for installing docker can be found in the documentation for the 
-distribution in use and some additional information is provided below.
+machine runs on an Intel/AMD 64-bit processor since this uses a 64-bit docker
+image. Instructions for installing docker can be found in the documentation for
+the distribution in use (search: "<distroName> install docker"). Some additional
+docker install information is provided below.
 ```
 I tried to build on OSX 10.9.5 (Mavericks) using boot2docker which uses and
 installs VirtualBox. Unfortunately there is a unfixed bug in VirtualBox that
@@ -31,7 +32,7 @@ a newer "Docker For Windows" that use native virtualization, similar to
 "Docker for Mac", but it currently requires Windows 10 Pro which I don't have.
 It would probably fix the hard link problem (since it doesn't use VirtualBox)
 but NTFS would probably have to be remounted as case senstive to resolve the
-issue of filename in several directories of asuswrt-merlin differing only by
+issue of filenames in several directories of asuswrt-merlin differing only by
 case.
 ```
 To allow docker commands to be run as a normal user without sudo, do this one
@@ -107,13 +108,20 @@ is built and should be the only option when it is used.
 
 For convenience, at the completion of each router build the resulting firmware
 file is copied by the script to the asuswrt-merlin top level root directory from 
-the architecture-router dependent location 
+the architecture-router dependent locations 
 ```
-"asuswrt-merlin/release/src-rt-*/*/image/RT-AC*.trx"
+"asuswrt-merlin/release/src-rt-*/*/image/RT-*.trx"
 ```
 So a build with the "all" options will result in nine 
 ```
-RT-AC*.trx
+RT-*.trx
 ```
-files appearing at the asuswrt-merlin top level.
+files appearing at the asuswrt-merlin top level. 
+
+Since docker runs the container as root, files checked out by git and produced
+by the the script running in the container become owned by root. However, the 
+script changes the owner of the generated firmware files at all locations as 
+well as checked-out and other files from root owner to the user and group ID
+of the user running the script. This is not essential but it avoids unexpected 
+ownership of files by root.
 

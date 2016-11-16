@@ -2,42 +2,39 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Script to build asuswrt-merlin firmware. This and other files are assumed to
-# be located in a folder (docker-scripts/) located at the root of the 
-# asuswrt-merlin project already cloned/pulled from git.
+# Script to build asuswrt-merlin firmware. This and the other project files are
+# assumed to be located in a folder (docker-scripts-asuswrt-merlin/) located at 
+# the root of the asuswrt-merlin project tree cloned/pulled/checked-out from git.
 #
-# Developed on OS X.
+# Developed on Linux (Fedora 23).
 # Also tested on:
-#   -
+#   -Debian Stretch (a.k.a, Testing)
 #
 # Build using Docker containers.
 # The build is structured in 2 steps, one running on the host machine
 # and one running inside the Docker container.
 #
-# At first run, Docker will download/build 3 relatively large
-# images (1-2GB) from Docker Hub.
+# Uses locally built docker image called "asuswrt-merlin-addons". 
+# See README.md for details. 
 #
 # Prerequisites for build host:
 #
-#   Docker
-#   curl, git, automake, patch, tar, unzip
-#
-# When running on OS X, MacPorts with the following ports installed:
-#
-#   sudo port install libtool automake autoconf pkgconfig
-#   sudo port install cmake boost libconfuse swig-python
-#   sudo port install texinfo texlive
+#   Docker, git
 #
 
-# 
 CONTAINER_NAME=build-asuswrt-merlin
 IMAGE_NAME=asuswrt-merlin-addons
 BUILD_SCRIPT=build-script.sh
+GROUP_ID=$(id -g)
+USER_ID=$(id -u)
+HOST_UNAME="$(uname)"
 
-# Mandatory definition.
-APP_NAME="AsusWrt-Merlin"
+# Flag that script did or did not run docker
+DOCKER_DID_RUN="n"
 
-APP_LC_NAME=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]')
+# Flag that on last docker run call, just reset file owners
+# from root back to script user.
+RESET_OWNER="n"
 
 # This *assumes* docker-scripts/ folder containing this file is at the 
 # top level (root) of the already checked out asuswrt-merlin git project tree.
@@ -48,7 +45,29 @@ WORK_FOLDER=$(dirname `pwd`)
 # docker run --volume parameter).
 MROOT="/asuswrt-merlin-root"
 
-# reset these before before next call to do_docker_run() 
+# define a crtl-c handler since ctrl-c (SIGINT) will result in the container
+# continuing to run in the background even though this script exits.
+trap ctrl_c_handler INT
+function ctrl_c_handler() {
+  printf "\nCleaning up running container, please wait..."
+  # Remove the possibly still running container 
+  docker rm --force -v "${CONTAINER_NAME}" > /dev/null 2> /dev/null
+  sleep 3
+  # Run container once more to reset owner of files back to
+  # the user/group ID of the script runner.
+  reset_build_parameters
+  RESET_OWNER="y"
+  RESTORE_SRC_FROM_GIT="y"  # actually, this avoids some actions
+  do_docker_run
+  echo "Container removed and file owners reset back to script user."
+  # Note: if ctrl-c done during git checkout, all files previously
+  # deleted will not be restored. Do a normal git checkout from
+  # the top level or re-run script with option clean-src for the 
+  # first router built; or use option "all" which also restores the files. 
+} 
+    
+# resets parameters before before next call to do_docker_run() 
+#
 function reset_build_parameters() {
     MAKE_CLEAN_TARGET="n"
     MAKE_CLEANKERNEL_TARGET="n"
@@ -71,13 +90,12 @@ function do_docker_run() {
     set -e
 
     echo
-    echo "Run build script inside docker container"
+    echo "Running script inside docker container"
 
     # Run the script in a fresh Docker container.
     docker run \
       --name="${CONTAINER_NAME}" \
       --tty \
-      -i \
       --hostname "docker" \
       --workdir="/root" \
       --volume="${WORK_FOLDER}:/${MROOT}" \
@@ -86,6 +104,9 @@ function do_docker_run() {
         --make-clean-target "${MAKE_CLEAN_TARGET}" \
         --make-cleankernel-target "${MAKE_CLEANKERNEL_TARGET}" \
         --restore-src-from-git "${RESTORE_SRC_FROM_GIT}" \
+        --group-id "${GROUP_ID}" \
+	--user-id "${USER_ID}" \
+	--host-uname "${HOST_UNAME}" \
         -- \
         --do-build-rt-n66u "${DO_BUILD_RT_N66U}" \
         --do-build-rt-ac66u "${DO_BUILD_RT_AC66U}" \
@@ -95,19 +116,68 @@ function do_docker_run() {
         --do-build-rt-ac3200 "${DO_BUILD_RT_AC3200}" \
         --do-build-rt-ac88u  "${DO_BUILD_RT_AC88U}" \
         --do-build-rt-ac3100 "${DO_BUILD_RT_AC3100}" \
-        --do-build-rt-ac5300 "${DO_BUILD_RT_AC5300}" 
+        --do-build-rt-ac5300 "${DO_BUILD_RT_AC5300}" \
+        --do-reset-file-owner "${RESET_OWNER}"
 
     # Remove the container.
     docker rm --force -v "${CONTAINER_NAME}"
 
     reset_build_parameters
+    DOCKER_DID_RUN="y" 
 }
 
-source ./produce-build-script.sh
+function print_usage {
+      echo "Build the asuswrt-merlin firmware for listed router(s)."
+      echo "Usage:"
+      echo "    $0 [clean] [cleankernel] [clean-src] router ... | help | all" 
+      echo "    clean       Do \"make clean\" before router build"
+      echo "    cleankernel Do \"make cleankernel\" before router build"
+      echo "    clean-src   Do \"rm -r release/src/router ; git checkout release/src\" before router build"
+      echo "                CAUTION: Deletes any uncommitted source changes!"
+      echo "    help        Print this usage information"
+      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u. \"Clean\" option(s) must be before router." 
+      echo "    all         Build all routers: rt-n66u, rt-ac66u, rt-ac56u, rt-ac68u, rt-ac87u," 
+      echo "                                   rt-ac3200, rt-ac88u, rt-ac3100, rt-ac5300. Appropriate clean options"
+      echo "                                   will automatically precede each router build. \"all\" option will"
+      echo "                                   also remove uncommited source changes!"
+}
 
 # ----- Parse actions and command line options. -----
 reset_build_parameters
 
+# Make sure at least one option was entered.
+if [ $# -eq 0 ] ; then
+  print_usage
+  exit 1 
+fi
+
+# Make sure each entered option is valid, i.e., no typos. Without this, later
+# options are checked only after the leading routers are built which can be long 
+# after starting the script, depending on how many router types are entered on 
+# the command line. Also, make sure clean operation is followed by a router
+# type and not last.
+LAST_IS_CLEAN="n"
+for opt in "$@" 
+do
+  case "$opt" in
+    clean|cleankernel|clean-src)
+      LAST_IS_CLEAN="y"
+      ;;
+    rt-n66u|rt-ac66u|rt-ac56u|rt-ac68u|rt-ac87u|rt-ac3200|rt-ac88u|rt-ac3100|rt-ac5300|all)
+      LAST_IS_CLEAN="n"
+      ;;
+    *)
+      print_usage
+      exit 1
+      ;;
+  esac
+done
+if [ $LAST_IS_CLEAN == "y" ] ; then
+    print_usage
+    exit 1
+fi
+
+# Now interate through options again and do build for each router listed.
 while [ $# -gt 0 ]
 do
   case "$1" in
@@ -233,30 +303,23 @@ do
       do_docker_run
       ;;
 
-    help)
-      echo "Build the asuswrt-merlin firmware for listed router(s)."
-      echo "Usage:"
-      echo "    $0 [clean] [cleankernel] [clean-src] router ... | help | all" 
-      echo "    clean       Do \"make clean\" before router build"
-      echo "    cleankernel Do \"make cleankernel\" before router build"
-      echo "    clean-src   Do \"rm -r release/src/router ; git checkout release/src\" before router build"
-      echo "                CAUTION: Deletes any uncommitted source changes!"
-      echo "    help        Print this usage information"
-      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u. \"Clean\" option(s) must be before router." 
-      echo "    all         Build all routers: rt-n66u, rt-ac66u, rt-ac56u, rt-ac68u, rt-ac87u," 
-      echo "                                   rt-ac3200, rt-ac88u, rt-ac3100, rt-ac5300. Appropriate clean options"
-      echo "                                   will automatically precede each router build. \"all\" option will"
-      echo "                                   also remove uncommited source changes!"
-      exit 1
-      ;;
-
     *)
-      echo "Unknown action/option $1: Run \"$0 help\""
+      print_usage
       exit 1
       ;;
   esac
-
 done
+
+if [ $DOCKER_DID_RUN == "n" ] ; then
+  # no router name provided on command line
+  print_usage
+  exit 1
+else
+  # docker did run, run once more to reset owner of files back to
+  # the user/group ID of the script runner.
+  RESET_OWNER="y"
+  do_docker_run
+fi
 
 # ----- Done. -----
 exit 0
