@@ -7,11 +7,15 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Project root in docker container (mapped to project root in host with
-# docker run --volume parameter). Note: expanded to actual value here due to 
-# unquoted EOF above.
+# docker run --volume parameter). 
 MROOT=/asuswrt-merlin-root
 
-
+# Pick a user and group name, any name... (except root). The first run
+# of the script runs as root so symlinks to /opt can be set then the
+# script runs itself again as the non-root user. Note: the uid and gid
+# of the non-root user equals those of the non-root top level script runner. 
+NON_ROOT_USER=udummy
+NON_ROOT_GROUP=gdummy
 
 # Fix-ups needed because of different version of autotools 
 # Skipped if already done, i.e., configure.in moved to configure.ac 
@@ -56,7 +60,7 @@ function rm_and_restore_src_from_git {
   git checkout ./release/src/router
 }
 
-function reset_files_owner {
+function reset_git_lock {
   cd ${MROOT}
   # if script terminated with git operations in progress, lock on git index
   # remains set that will prevent starting the script again. Remove lock.
@@ -66,18 +70,21 @@ function reset_files_owner {
     echo "First, continue checkout of clean ${MROOT}/release/src/router..."
     git checkout ./release/src/router
   fi
-  if [ "${host_uname}" == "Linux" ]
-  then
-    # set owner of files checked out from root to the id of the user running 
-    # the script. Also changes other files produced by the build. This is not
-    # essential but makes mananging the source tree easier for the user since 
-    # files do not remain owned by root. 
-    chown -R ${user_id}:${group_id} ./release
-    # change owner of firmware files copied to top level
-    chown ${user_id}:${group_id} ./*.trx 
-    # change owner of .git/index that also gets set to root if checkout occurs 
-    chown ${user_id}:${group_id} ./.git/index 
-  fi
+}
+
+function create_switch_to_non_root_user {
+    # Note: setting symlinks into /opt must be done as root which
+    # this runs as. PATH must be set later by non-root user since build,
+    # after su below, runs as non-root user.
+    ln -s ${MROOT}/tools/brcm /opt/brcm
+    ln -s ${MROOT}/release/src-rt-6.x.4708/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3 /opt/brcm-arm
+    # create non-root group and user. These match to user and group ids of the
+    # top level script user.
+    groupadd -f -g ${group_id} $NON_ROOT_GROUP
+    useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER 
+    # re-run this script as non-root user but with already "consumed" leading
+    # options stripped off. This does the bulk of the build.
+    exec su "$NON_ROOT_USER" -c "$0 $residue"
 }
 
 function build_router_fw {
@@ -104,25 +111,30 @@ function build_router_fw {
     fi
 }
 
-# Asuswrt merlin root mapped to ${MROOT} by --volume 
-# option of the "run docker" command. Set symbolic links in 
-# /opt and set PATH, both needed for toolchain access.
-#
-ln -s ${MROOT}/tools/brcm /opt/brcm
-ln -s ${MROOT}/release/src-rt-6.x.4708/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3 /opt/brcm-arm
-PATH=$PATH:/opt/brcm/hndtools-mipsel-linux/bin:/opt/brcm/hndtools-mipsel-uclibc/bin:/opt/brcm-arm/bin
 
 MAKE_CLEAN_STRING=""
 MAKE_CLEANKERNEL_STRING=""
 do_build="n"
-do_owner_reset="n"
+do_reset_git_lock="n"
+residue=""
 
 while [ $# -gt 0 ]
 do
   case "$1" in
+    --group-id)
+      group_id="$2"
+      shift 2
+      ;;
+    --user-id)
+      user_id="$2"
+      shift 2
+      residue="$@"
+      create_switch_to_non_root_user
+      ;;
     --make-clean-target)
       make_clean_target="$2"
       shift 2
+      PATH=$PATH:/opt/brcm/hndtools-mipsel-linux/bin:/opt/brcm/hndtools-mipsel-uclibc/bin:/opt/brcm-arm/bin
       ;;
     --make-cleankernel-target)
       make_cleankernel_target="$2"
@@ -130,14 +142,6 @@ do
       ;;
     --restore-src-from-git)
       restore_src_from_git="$2"
-      shift 2
-      ;;
-    --group-id)
-      group_id="$2"
-      shift 2
-      ;;
-    --user-id)
-      user_id="$2"
       shift 2
       ;;
     --host-uname)
@@ -214,8 +218,8 @@ do
       router_dir=src-rt-7.14.114.x/src
       shift 2
       ;;
-    --do-reset-file-owner)
-      do_owner_reset="$2"
+    --do-reset-git-lock)
+      do_reset_git_lock="$2"
       do_build="n"
       shift 2
       ;;
@@ -226,10 +230,10 @@ do
   if [ "${do_build}" == "y" ]
   then
       build_router_fw
-  elif [ "${do_owner_reset}" == "y" ] ; then
+  elif [ "${do_reset_git_lock}" == "y" ] ; then
       # this always done last 
-      echo "Resetting file ownership from root to script user..."
-      reset_files_owner
+      echo "Check and reset possible git lock..."
+      reset_git_lock
   fi
 done
 

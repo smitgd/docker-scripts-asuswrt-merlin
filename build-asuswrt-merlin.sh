@@ -32,9 +32,8 @@ HOST_UNAME="$(uname)"
 # Flag that script did or did not run docker
 DOCKER_DID_RUN="n"
 
-# Flag that on last docker run call, just reset file owners
-# from root back to script user.
-RESET_OWNER="n"
+# Flag that on last docker run check that git was not left locked. 
+RESET_GIT_LOCK="n"
 
 # This *assumes* docker-scripts/ folder containing this file is at the 
 # top level (root) of the already checked out asuswrt-merlin git project tree.
@@ -53,10 +52,9 @@ function ctrl_c_handler() {
   # Remove the possibly still running container 
   docker rm --force -v "${CONTAINER_NAME}" > /dev/null 2> /dev/null
   sleep 3
-  # Run container once more to reset owner of files back to
-  # the user/group ID of the script runner.
+  # Run container once more to make sure git is not locked 
   reset_build_parameters
-  RESET_OWNER="y"
+  RESET_GIT_LOCK="y"
   RESTORE_SRC_FROM_GIT="y"  # actually, this avoids some actions
   do_docker_run
   echo "Container removed and file owners reset back to script user."
@@ -97,15 +95,15 @@ function do_docker_run() {
       --name="${CONTAINER_NAME}" \
       --tty \
       --hostname "docker" \
-      --workdir="/root" \
-      --volume="${WORK_FOLDER}:/${MROOT}" \
+      --workdir="${MROOT}" \
+      --volume="${WORK_FOLDER}:${MROOT}" \
       ${IMAGE_NAME} \
       /bin/bash "/${MROOT}/$(basename `pwd`)/${BUILD_SCRIPT}" \
+        --group-id "${GROUP_ID}" \
+	--user-id "${USER_ID}" \
         --make-clean-target "${MAKE_CLEAN_TARGET}" \
         --make-cleankernel-target "${MAKE_CLEANKERNEL_TARGET}" \
         --restore-src-from-git "${RESTORE_SRC_FROM_GIT}" \
-        --group-id "${GROUP_ID}" \
-	--user-id "${USER_ID}" \
 	--host-uname "${HOST_UNAME}" \
         -- \
         --do-build-rt-n66u "${DO_BUILD_RT_N66U}" \
@@ -117,7 +115,7 @@ function do_docker_run() {
         --do-build-rt-ac88u  "${DO_BUILD_RT_AC88U}" \
         --do-build-rt-ac3100 "${DO_BUILD_RT_AC3100}" \
         --do-build-rt-ac5300 "${DO_BUILD_RT_AC5300}" \
-        --do-reset-file-owner "${RESET_OWNER}"
+        --do-reset-git-lock "${RESET_GIT_LOCK}"
 
     # Remove the container.
     docker rm --force -v "${CONTAINER_NAME}"
@@ -315,9 +313,9 @@ if [ $DOCKER_DID_RUN == "n" ] ; then
   print_usage
   exit 1
 else
-  # docker did run, run once more to reset owner of files back to
-  # the user/group ID of the script runner.
-  RESET_OWNER="y"
+  # docker did run, run once more to make sure script running didn't
+  # leave git locked by doing ctrl-c during a git checkout.
+  RESET_GIT_LOCK="y"
   do_docker_run
 fi
 

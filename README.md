@@ -118,10 +118,10 @@ RT-*.trx
 ```
 files appearing at the asuswrt-merlin top level. 
 
-Since docker runs the container as root, files checked out by git and produced
-by the the script running in the container become owned by root. However, the 
-script changes the owner of the generated firmware files at all locations as 
-well as checked-out and other files from root owner to the user and group ID
-of the user running the script. This is not essential but it avoids unexpected 
-ownership of files by root.
-
+By default the docker container runs as root, so files checked out by git and
+produced by the the script running in the container would become owned by root.
+However, after the script does some things that must be done by root, it 
+creates a new user and group ID in the container equal to the IDs of the 
+user running the script. The container then completes the build while running 
+as that new user. Therefore, the script does not create or change the ownership
+of any file in the source tree.
