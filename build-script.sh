@@ -106,8 +106,11 @@ function build_router_fw {
     eval make ${router} 
     if compgen -G "./image/*.trx" > /dev/null
     then
-	# copy firmware file(s) to asuswrt-merlin top level
-        cp -p ./image/*.trx ${MROOT}/
+        # copy only newest (just built) firmware file to asuswrt-merlin 
+        # top level. Note: Existing firmware files are not affected by
+        # various "clean" targets it seems, so with just a simple cp, old  
+        # files are copied too. So this just copies the newest *.trx.
+        cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${MROOT}/ 
     fi
 }
 
