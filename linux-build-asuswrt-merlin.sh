@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Script to build asuswrt-merlin firmware directly on linux. This and the other
-# project files are assumed to be located in a folder 
-# (docker-scripts-asuswrt-merlin/) located at the root of the asuswrt-merlin 
+# project files are assumed to be located in a folder
+# (docker-scripts-asuswrt-merlin/) located at the root of the asuswrt-merlin
 # project tree cloned/pulled/checked-out from git.
 #
 # Developed on Linux (Fedora 23).
@@ -16,41 +16,32 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# call this script to do the main build
 BUILD_SCRIPT=linux-build-script.sh
-HOST_UNAME="$(uname)"
 
-# Flag that script did or did not run 
+# Flag that script did or did not run
 BUILD_DID_RUN="n"
 
-# Flag that on last script run check that git was not left locked. 
+# Flag that on last script run check that git was not left locked.
 RESET_GIT_LOCK="n"
-
-# This *assumes* "docker-scripts-asuswrt-merlin/" folder containing this file 
-# is at the top level (root) of the already checked out asuswrt-merlin git 
-# project tree.
-#
-WORK_FOLDER=$(dirname `pwd`)
-
-# Project root on linux 
-MROOT="$HOME/asuswrt-merlin"
 
 # define a crtl-c handler since ctrl-c (SIGINT) will result in the container
 # continuing to run in the background even though this script exits.
 # PROBABLY NOT NEEDED WHEN RUN ON LINUX  -- tbd
 trap ctrl_c_handler INT
 function ctrl_c_handler() {
-  # Run script once more to make sure git is not locked 
+  # Run script once more to make sure git is not locked
   reset_build_parameters
   RESET_GIT_LOCK="y"
   RESTORE_SRC_FROM_GIT="y"  # actually, this avoids some actions
   do_build_run
   # Note: if ctrl-c done during git checkout, all files previously
   # deleted will not be restored. Do a normal git checkout from
-  # the top level or re-run script with option clean-src for the 
-  # first router built; or use option "all" which also restores the files. 
-} 
-    
-# resets parameters before before next call to do_build_run() 
+  # the top level or re-run script with option clean-src for the
+  # first router built; or use option "all" which also restores the files.
+}
+
+# resets parameters before before next call to do_build_run()
 #
 function reset_build_parameters() {
     MAKE_CLEAN_TARGET="n"
@@ -72,7 +63,7 @@ function do_build_run() {
     echo "Running script directly on linux"
 
     # Run the build script
-    "${MROOT}/$(basename `pwd`)/${BUILD_SCRIPT}" \
+    ./"${BUILD_SCRIPT}" \
         --group-id "${SUDO_GID}" \
 	--user-id "${SUDO_UID}" \
         --make-clean-target "${MAKE_CLEAN_TARGET}" \
@@ -91,20 +82,20 @@ function do_build_run() {
         --do-reset-git-lock "${RESET_GIT_LOCK}"
 
     reset_build_parameters
-    BUILD_DID_RUN="y" 
+    BUILD_DID_RUN="y"
 }
 
 function print_usage {
       echo "Build the asuswrt-merlin firmware for listed router(s)."
       echo "Usage:"
-      echo "    $0 [clean] [cleankernel] [clean-src] router ... | help | all" 
+      echo "    $0 [clean] [cleankernel] [clean-src] router ... | help | all"
       echo "    clean       Do \"make clean\" before router build"
       echo "    cleankernel Do \"make cleankernel\" before router build"
       echo "    clean-src   Do \"rm -r release/src/router ; git checkout release/src\" before router build"
       echo "                CAUTION: Deletes any uncommitted source changes!"
       echo "    help        Print this usage information"
-      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u. \"Clean\" option(s) must be before router." 
-      echo "    all         Build all routers: rt-n66u, rt-ac66u, rt-ac56u, rt-ac68u, rt-ac87u," 
+      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u. \"Clean\" option(s) must be before router."
+      echo "    all         Build all routers: rt-n66u, rt-ac66u, rt-ac56u, rt-ac68u, rt-ac87u,"
       echo "                                   rt-ac3200, rt-ac88u, rt-ac3100, rt-ac5300. Appropriate clean options"
       echo "                                   will automatically precede each router build. \"all\" option will"
       echo "                                   also remove uncommited source changes!"
@@ -116,16 +107,16 @@ reset_build_parameters
 # Make sure at least one option was entered.
 if [ $# -eq 0 ] ; then
   print_usage
-  exit 1 
+  exit 1
 fi
 
 # Make sure each entered option is valid, i.e., no typos. Without this, later
-# options are checked only after the leading routers are built which can be long 
-# after starting the script, depending on how many router types are entered on 
+# options are checked only after the leading routers are built which can be long
+# after starting the script, depending on how many router types are entered on
 # the command line. Also, make sure clean operation is followed by a router
 # type and not last.
 LAST_IS_CLEAN="n"
-for opt in "$@" 
+for opt in "$@"
 do
   case "$opt" in
     clean|cleankernel|clean-src)

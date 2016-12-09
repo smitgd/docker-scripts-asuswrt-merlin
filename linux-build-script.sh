@@ -6,17 +6,17 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Root location of asuswrt-merlin tree 
-MROOT=$HOME/asuswrt-merlin
+# Root location of asuswrt-merlin tree
+MROOT=$(dirname `pwd`)
 
-# Name assigned in virtualBox to folder shared between host and virtualBox 
+# Name assigned in virtualBox to folder shared between host and virtualBox
 # running linux that is mounted below and outputs files are copied to.
 # Also define the linux mount point.
 SHARE_NAME=shared
 OUTPUTS_MPOINT=${MROOT}/outputs
 
-# Fix-ups needed because of different version of autotools 
-# Skipped if already done, i.e., configure.in moved to configure.ac 
+# Fix-ups needed because of different version of autotools
+# Skipped if already done, i.e., configure.in moved to configure.ac
 #
 function do_autoconfig_fixups() {
   cd ${MROOT}/release/src/router/libxml2
@@ -42,7 +42,7 @@ function do_autoconfig_fixups() {
 # Called before each router build when "clean-src" option used.
 # This is needed between builds of multiple routers when the architecture
 # changes between sucessive build, e.g., current build mips, previous build
-# was arm such as when "all" option is used. "make cleankernel" and 
+# was arm such as when "all" option is used. "make cleankernel" and
 # "make clean" don't 100% remove files from a previous build and
 # some residual (untracked maybe .gitignore'd) files cause build failure.
 # Of course, this may remove changes not yet committed to git so use
@@ -79,30 +79,31 @@ function create_symlinks_and_mount_switch_non_root_user {
     ln -sf ${MROOT}/tools/brcm /opt/brcm
     ln -sf ${MROOT}/release/src-rt-6.x.4708/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3 /opt/brcm-arm
     # make outputs directory which becomes the mount point for accessing
-    # output *.trx files on the host. To avoid root ownership, the 
+    # output *.trx files on the host. To avoid root ownership, the
     # non-root script runner's gid and uid are passed to mount so cp
     # of files to host occur with no permission problems. Must do this
     # before switching to non-root user.
-    mountpoint -q "${OUTPUTS_MPOINT}" 
-    if [ $? -ne 0 ] ; then
-      # not currently a mountpoint. create it and do the mount. The mountpoint
-      # will already exists after the first script call so this avoids error 
-      # stoppage.
-      mkdir -p ${OUTPUTS_MPOINT}
-      mount -t vboxsf -o uid=${user_id},gid=${group_id} ${SHARE_NAME} ${OUTPUTS_MPOINT}
-    fi
+    mkdir -p ${OUTPUTS_MPOINT}
+    # Prevent exit on error since if run directly on linux (no vm) mount will
+    # fail since there is no vboxsf (virtualBox filesystem).
+    set +e
+    mount -t vboxsf -o uid=${user_id},gid=${group_id} ${SHARE_NAME} ${OUTPUTS_MPOINT} > /dev/null 2>&1
+    set +e
+    # chown to non-root only needed when run directly on linux since
+    # in that case mount above fails. With vbox, chown here is redundant.
+    chown -R ${user_id}:${group_id} ${OUTPUTS_MPOINT}
     # re-run this script as non-root user but with already "consumed" leading
-    # options stripped off. This does the bulk of the build. su requires 
+    # options stripped off. This does the bulk of the build. su requires
     # a user name which must be determined from user_id.
     exec su "$(getent passwd ${user_id} | cut -d: -f1)" -c "$0 $residue"
 }
 
 function build_router_fw {
-    if [ "${restore_src_from_git}" == "y" ] 
+    if [ "${restore_src_from_git}" == "y" ]
     then
         rm_and_restore_src_from_git
         do_autoconfig_fixups
-    fi 
+    fi
     cd ${MROOT}/release/${router_dir}
     if [ "${MAKE_CLEANKERNEL_STRING}" != "" ] ; then
         MAKE_CLEANKERNEL_STRING="make ${MAKE_CLEANKERNEL_STRING}"
@@ -113,12 +114,12 @@ function build_router_fw {
         MAKE_CLEAN_STRING="make ${MAKE_CLEAN_STRING}"
         eval ${MAKE_CLEAN_STRING}
     fi
-    eval make ${router} 
+    eval make ${router}
     if compgen -G "./image/*.trx" > /dev/null
     then
-        # copy only newest (just built) firmware file to asuswrt-merlin 
+        # copy only newest (just built) firmware file to asuswrt-merlin
         # top level. Note: Existing firmware files are not affected by
-        # various "clean" targets it seems, so with just a simple cp, old  
+        # various "clean" targets it seems, so with just a simple cp, old
         # files are copied too. So this just copies the newest *.trx.
         cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${OUTPUTS_MPOINT}
     fi
@@ -146,7 +147,7 @@ do
     --make-clean-target)
       make_clean_target="$2"
       shift 2
-      PATH=$PATH:/opt/brcm/hndtools-mipsel-linux/bin:/opt/brcm/hndtools-mipsel-uclibc/bin:/opt/brcm-arm/bin
+      PATH=$PATH:/opt/brcm-arm/bin:/opt/brcm/hndtools-mipsel-linux/bin:/opt/brcm/hndtools-mipsel-uclibc/bin
       ;;
     --make-cleankernel-target)
       make_cleankernel_target="$2"
@@ -158,15 +159,15 @@ do
       ;;
     --)
       # Above 5 items now known, set some strings based on them
-      if [ "${restore_src_from_git}" == "n" ] 
+      if [ "${restore_src_from_git}" == "n" ]
       then
           do_autoconfig_fixups
       fi
-      if [ "${make_cleankernel_target}" == "y" ] 
+      if [ "${make_cleankernel_target}" == "y" ]
       then
           MAKE_CLEANKERNEL_STRING="cleankernel"
       fi
-      if [ "${make_clean_target}" == "y" ] 
+      if [ "${make_clean_target}" == "y" ]
       then
           MAKE_CLEAN_STRING="clean"
       fi
@@ -239,7 +240,7 @@ do
   then
       build_router_fw
   elif [ "${do_reset_git_lock}" == "y" ] ; then
-      # this always done last 
+      # this always done last
       echo "Check and reset possible git lock..."
       reset_git_lock
   fi
