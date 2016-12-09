@@ -10,6 +10,9 @@ IFS=$'\n\t'
 # docker run --volume parameter). 
 MROOT=/asuswrt-merlin-root
 
+# Output directory created in MROOT to contain the built firmware files.
+OUTPUTS=${MROOT}/outputs
+
 # Pick a user and group name, any name... (except root). The first run
 # of the script runs as root so symlinks to /opt can be set then the
 # script runs itself again as the non-root user. Note: the uid and gid
@@ -78,10 +81,14 @@ function create_switch_to_non_root_user {
     # after su below, runs as non-root user.
     ln -s ${MROOT}/tools/brcm /opt/brcm
     ln -s ${MROOT}/release/src-rt-6.x.4708/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3 /opt/brcm-arm
-    # create non-root group and user. These match to user and group ids of the
+    # Create non-root group and user. These match to user and group ids of the
     # top level script user.
     groupadd -f -g ${group_id} $NON_ROOT_GROUP
     useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER 
+    # Create the outputs directory and set the owner to non-root script runner.
+    # Won't matter if this is already done.
+    mkdir -p ${OUTPUTS}
+    chown ${user_id}:${group_id} ${OUTPUTS}
     # re-run this script as non-root user but with already "consumed" leading
     # options stripped off. This does the bulk of the build.
     exec su "$NON_ROOT_USER" -c "$0 $residue"
@@ -110,7 +117,7 @@ function build_router_fw {
         # top level. Note: Existing firmware files are not affected by
         # various "clean" targets it seems, so with just a simple cp, old  
         # files are copied too. So this just copies the newest *.trx.
-        cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${MROOT}/ 
+	cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${OUTPUTS}/ 
     fi
 }
 
