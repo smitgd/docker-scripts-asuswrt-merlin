@@ -84,10 +84,17 @@ function create_symlinks_and_mount_switch_non_root_user {
     # of files to host occur with no permission problems. Must do this
     # before switching to non-root user.
     mkdir -p ${OUTPUTS_MPOINT}
-    # Prevent exit on error since if run directly on linux (no vm) mount will
-    # fail since there is no vboxsf (virtualBox filesystem).
+    # Prevent exit on error since if run directly on linux (no vbox) mount will
+    # fail since there is no vboxsf (virtualBox filesystem). mountpoint exit
+    # with not zero is also seen as failure so set +e avoids error exit for both.
     set +e
-    mount -t vboxsf -o uid=${user_id},gid=${group_id} ${SHARE_NAME} ${OUTPUTS_MPOINT} > /dev/null 2>&1
+    mountpoint -q "${OUTPUTS_MPOINT}"
+    if [ $? -ne 0 ] ; then
+      # $OUTPUTS_MPOINT not currently mounted.
+      # Mount only once when on vbox. mount always fails when run on 
+      # "real" linux which is OK.
+      mount -t vboxsf -o uid=${user_id},gid=${group_id} ${SHARE_NAME} ${OUTPUTS_MPOINT} > /dev/null 2>&1
+    fi
     set +e
     # chown to non-root only needed when run directly on linux since
     # in that case mount above fails. With vbox, chown here is redundant.

@@ -29,11 +29,5 @@ apt-get install -y git lib32z1-dev lib32stdc++6
 # so files produces are available on host system.
 apt-get install -y virtualbox-guest-utils
 
-# Change owner of /opt so linux-build-script.sh runs as non-root user.
-# Needed since symlinks to /opt must be set. (May not want to do this 
-# if running "bare-metal" linux and not in virtualbox VM depending on 
-# security concerns.)
-chown -R ${SUDO_UID}:${SUDO_GID} /opt
-
 # print this file see if it is actaully Ubuntu Xenial (16.04) you are running.
 cat /etc/lsb-release
