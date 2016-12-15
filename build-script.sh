@@ -7,7 +7,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Project root in docker container (mapped to project root in host with
-# docker run --volume parameter). 
+# docker run --volume parameter).
 MROOT=/asuswrt-merlin-root
 
 # Output directory created in MROOT to contain the built firmware files.
@@ -16,12 +16,12 @@ OUTPUTS=${MROOT}/outputs
 # Pick a user and group name, any name... (except root). The first run
 # of the script runs as root so symlinks to /opt can be set then the
 # script runs itself again as the non-root user. Note: the uid and gid
-# of the non-root user equals those of the non-root top level script runner. 
+# of the non-root user equals those of the non-root top level script runner.
 NON_ROOT_USER=udummy
 NON_ROOT_GROUP=gdummy
 
-# Fix-ups needed because of different version of autotools 
-# Skipped if already done, i.e., configure.in moved to configure.ac 
+# Fix-ups needed because of different version of autotools
+# Skipped if already done, i.e., configure.in moved to configure.ac
 #
 function do_autoconfig_fixups() {
   cd ${MROOT}/release/src/router/libxml2
@@ -47,7 +47,7 @@ function do_autoconfig_fixups() {
 # Called before each router build when "clean-src" option used.
 # This is needed between builds of multiple routers when the architecture
 # changes between sucessive build, e.g., current build mips, previous build
-# was arm such as when "all" option is used. "make cleankernel" and 
+# was arm such as when "all" option is used. "make cleankernel" and
 # "make clean" don't 100% remove files from a previous build and
 # some residual (untracked maybe .gitignore'd) files cause build failure.
 # Of course, this may remove changes not yet committed to git so use
@@ -84,7 +84,7 @@ function create_switch_to_non_root_user {
     # Create non-root group and user. These match to user and group ids of the
     # top level script user.
     groupadd -f -g ${group_id} $NON_ROOT_GROUP
-    useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER 
+    useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER
     # Create the outputs directory and set the owner to non-root script runner.
     # Won't matter if this is already done.
     mkdir -p ${OUTPUTS}
@@ -95,11 +95,11 @@ function create_switch_to_non_root_user {
 }
 
 function build_router_fw {
-    if [ "${restore_src_from_git}" == "y" ] 
+    if [ "${restore_src_from_git}" == "y" ]
     then
         rm_and_restore_src_from_git
         do_autoconfig_fixups
-    fi 
+    fi
     cd ${MROOT}/release/${router_dir}
     if [ "${MAKE_CLEANKERNEL_STRING}" != "" ] ; then
         MAKE_CLEANKERNEL_STRING="make ${MAKE_CLEANKERNEL_STRING}"
@@ -110,17 +110,24 @@ function build_router_fw {
         MAKE_CLEAN_STRING="make ${MAKE_CLEAN_STRING}"
         eval ${MAKE_CLEAN_STRING}
     fi
-    eval make ${router} 
+    eval make ${router}
     if compgen -G "./image/*.trx" > /dev/null
     then
-        # copy only newest (just built) firmware file to asuswrt-merlin 
+        # copy only newest (just built) firmware file to asuswrt-merlin
         # top level. Note: Existing firmware files are not affected by
-        # various "clean" targets it seems, so with just a simple cp, old  
+        # various "clean" targets it seems, so with just a simple cp, old
         # files are copied too. So this just copies the newest *.trx.
-	cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${OUTPUTS}/ 
+	cp -p "`ls -dtr1 ./image/*.trx | tail -1`" ${OUTPUTS}/
     fi
 }
 
+# Make an *inexact* check that this is called from the top level script
+# by checking the expected number of parameter strings. Note: Number of
+# parameters is 33 on first call then 29 on second (recursive) call.
+if [ $# -lt 29 ] ; then
+  echo "$0 should not be called directly!"
+  exit 1
+fi
 
 MAKE_CLEAN_STRING=""
 MAKE_CLEANKERNEL_STRING=""
@@ -160,15 +167,15 @@ do
       ;;
     --)
       # Above 6 items now known, set some strings based on them
-      if [ "${restore_src_from_git}" == "n" ] 
+      if [ "${restore_src_from_git}" == "n" ]
       then
           do_autoconfig_fixups
       fi
-      if [ "${make_cleankernel_target}" == "y" ] 
+      if [ "${make_cleankernel_target}" == "y" ]
       then
           MAKE_CLEANKERNEL_STRING="cleankernel"
       fi
-      if [ "${make_clean_target}" == "y" ] 
+      if [ "${make_clean_target}" == "y" ]
       then
           MAKE_CLEAN_STRING="clean"
       fi
@@ -241,7 +248,7 @@ do
   then
       build_router_fw
   elif [ "${do_reset_git_lock}" == "y" ] ; then
-      # this always done last 
+      # this always done last
       echo "Check and reset possible git lock..."
       reset_git_lock
   fi

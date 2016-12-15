@@ -91,7 +91,7 @@ function create_symlinks_and_mount_switch_non_root_user {
     mountpoint -q "${OUTPUTS_MPOINT}"
     if [ $? -ne 0 ] ; then
       # $OUTPUTS_MPOINT not currently mounted.
-      # Mount only once when on vbox. mount always fails when run on 
+      # Mount only once when on vbox. mount always fails when run on
       # "real" linux which is OK.
       mount -t vboxsf -o uid=${user_id},gid=${group_id} ${SHARE_NAME} ${OUTPUTS_MPOINT} > /dev/null 2>&1
     fi
@@ -132,6 +132,13 @@ function build_router_fw {
     fi
 }
 
+# Make an *inexact* check that this is called from the top level script
+# by checking the expected number of parameter strings. Note: Number of
+# parameters is 31 on first call then 27 on second (recursive) call.
+if [ $# -lt 27 ] ; then
+  echo "$0 should not be called directly!"
+  exit 1
+fi
 
 MAKE_CLEAN_STRING=""
 MAKE_CLEANKERNEL_STRING=""
@@ -150,6 +157,8 @@ do
       shift 2
       residue="$@"
       create_symlinks_and_mount_switch_non_root_user
+      # after this point, this script is called again with only the parameters
+      # below still present.
       ;;
     --make-clean-target)
       make_clean_target="$2"

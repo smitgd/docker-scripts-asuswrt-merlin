@@ -1,8 +1,13 @@
-This assists with asuswrt-merlin builds in a standardized environment using
-a docker container.
-
+Script build-asuswrt-merlin.sh assists with asuswrt-merlin builds in a
+standardized environment using a docker container.
+'''
+Alternate script linux-build-asuswrt-merlin.sh is used when building without
+using docker directly on linux or in a virtualBox VM running linux (tested on
+ubuntu, debian, fedora and with Windows 7 and 10 virtualBox host -- see
+README-linux.md for details).
+```
 The script works with Linux (tested on Fedora 23 and Debian Stretch/Testing) and
-requires that docker and git be installed. It also, requires that the build 
+requires that docker and git be installed. It also, requires that the build
 machine runs on an Intel/AMD 64-bit processor since this uses a 64-bit docker
 image. Instructions for installing docker can be found in the documentation for
 the distribution in use (search: "<distroName> install docker"). Some additional
@@ -45,7 +50,7 @@ $ # fully log-off and then back in
 $ sudo systemctl enable docker  # without this, step 3 required after reboot (Fedora specific)
 ```
 A one-time build of a docker image based on ubuntu:xenial from
-docker hub is required using the Dockerfile of this project. From this script 
+docker hub is required using the Dockerfile of this project. From this script
 project directory containing the Dockerfile run:
 ```
 $ docker build -t "asuswrt-merlin-addons" .
@@ -77,15 +82,9 @@ Place the directory containing this script project at the root of the
 asuswrt-merlin tree and run build-asuswrt-merlin.sh script from this project's
 directory.
 
-It is important that asuswrt-merlin project be under git control since the
-"clean-src" option and "all" option require that portions of the source tree 
-are deleted and "git checkout" occurs. So, if these build options are used, 
-make sure that any changes are committed at least locally and "git status" is 
-reasonably clean before starting a build. 
-
-No pull or other git command occurs that contact the github asuswrt-merlin repo
-in the build script. So if a pull or other git command is needed to set up the 
-local repo, it must be done manually before running the script.
+No pull or other git command occurs that contact the asuswrt-merlin git
+repository in the build script. So if a pull or other git command is needed to
+set up the local tree, it must be done manually before running the script.
 
 One or more or all supported routers can be built with a single script execution
 as shown in these examples:
@@ -94,9 +93,9 @@ $ ./build-asuswrt-merlin.sh clean rt-ac5300 cleankernel clean clean-src rt-ac56u
 $ ./build-asuswrt-merlin.sh rt-n66u
 $ ./build-asuswrt-merlin.sh all
 ```
-If "permission denied" errors occur shortly after starting the build, it may be 
+If "permission denied" errors occur shortly after starting the build, it may be
 due to selinux problems. The easiest way to "fix" the problem (Fedora specific)
-is to just remove the OPTION "--selinux-enabled" from /etc/sysconfig/docker and 
+is to just remove the OPTION "--selinux-enabled" from /etc/sysconfig/docker and
 restart the docker daemon as shown above and try the build again. Alternatively,
 selinux enforcing can be disabled. Of course both ways could introduce security
 issues (on the build system, not in the router firmware).
@@ -106,22 +105,28 @@ See "./build-asuswrt-merlin.sh help" for more details. Optional user selected
 automatically does pre-determined clean actions before each supported router
 is built and should be the only option when it is used.
 
+It is important that asuswrt-merlin project be under git control since the
+"clean-src" option and "all" option require that portions of the source tree be
+deleted and "git checkout" occur. So, if these build options are used, make sure
+that any changes are committed at least locally (or stashed) before starting a
+build to avoid possible loss of work.
+
 For convenience, at the completion of each router build the resulting firmware
-file is copied by the script to the asuswrt-merlin top level root directory from 
-the architecture-router dependent locations 
+file is copied by the script to the asuswrt-merlin top level root directory into
+an outputs/ directory from the architecture-router dependent locations
 ```
 "asuswrt-merlin/release/src-rt-*/*/image/RT-*.trx"
 ```
-So a build with the "all" options will result in nine 
+So a build with the "all" options will result in nine
 ```
 RT-*.trx
 ```
-files appearing at the asuswrt-merlin top level. 
+files appearing at the asuswrt-merlin top level in an outputs/ directory.
 
 By default the docker container runs as root, so files checked out by git and
 produced by the the script running in the container would become owned by root.
-However, after the script does some things that must be done by root, it 
-creates a new user and group ID in the container equal to the IDs of the 
-user running the script. The container then completes the build while running 
+However, after the script does some things that must be done by root, it
+creates a new user and group ID in the container equal to the IDs of the
+user running the script. The container then completes the build while running
 as that new user. Therefore, the script does not create or change the ownership
 of any file in the source tree.
