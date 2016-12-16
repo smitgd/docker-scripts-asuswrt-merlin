@@ -59,30 +59,27 @@ can begin choosing mostly defaults except for personalization items such as
 user name, password, timezone, keyboard type, etc. No need to encrypt or do
 special formatting or partitioning on the "disk".
 
-When the installation is complete, a reboot will be required. To avoid
-re-entering the installation program again, the installation ISO must be
-removed. This is accomplished by first "powering down" the virtual machine
-by selecting the VirtualBox menu item "File" followed by "Close..." then
-select "Power off the machine" and click OK. At the main VirtualBox program
-click the "Settings" icon and then again select the "Storage" item from the
-list. In the tree select the installation ISO (e.g., mini.iso) and then click
-the "-" icon having the pop-up description "Removes selected storage
-attachment" and complete the removal by clicking OK.
-
-Back at the VirtualBox program, click "Start" again and the installed Ubuntu
-Xenial will boot. (Note: if the installation ISO is not removed and the
-reboot occurs and the installation program restarts, just "power off"
-the virtual machine before doing anything and "remove" the installation ISO
-as described above and start again.)
+When the installation is complete, a reboot will be required. Some installation
+programs automatically remove (eject) the installation ISO . If not
+automatically removed, to avoid re-entering the installation program again, the
+installation ISO must be manually removed. This is accomplished by first
+"powering down" the virtual machine by selecting the VirtualBox menu item "File"
+followed by "Close..." then select "Power off the machine" and click OK. At the
+main VirtualBox program click the "Settings" icon and then again select the
+"Storage" item from the list. In the tree select the installation ISO (e.g.,
+mini.iso) and then click the "-" icon having the pop-up description "Removes
+selected storage attachment" and complete the removal by clicking OK.  Then,
+back at the VirtualBox program, click "Start" again and the just installed
+Ubuntu Xenial will boot.
 
 The following instructions assume that the server version is installed so only
-simple 80-column "tty" terminals are available.  Full desktop GUI operational
+simple 100-column "tty" terminals are available.  Full desktop GUI operational
 description is beyond the scope of this README, however it can still be used if
 preferred and if installed.
 
-Log in to Ubuntu Xenial at the prompt with non-root user name. The default
-server installation does not include git which is needed to obtain the
-projects. So, first, you must manually install it:
+Log in to Ubuntu Xenial at the prompt with your non-root user name. If the
+default server installation does not include git, it is needed to obtain the
+projects.  So, you must manually install it:
 ```
 $ cd
 $ sudo apt-get install git
@@ -95,14 +92,15 @@ Depending on network and processor speeds, this may take some time. While
 project cloning occurs you can open another terminal and obtain this script
 project, via another git clone:
 ```
-$ # If clone above still going, do ctrl-alt-F2 and log in to the new "tty"
+$ # If clone above still going, do ctrl-alt-F2 (or RightCtrl-F2) and log in to
+$ # the new "tty".
 $ cd asuswrt-merlin
 $ git clone https://github.com/smitgd/docker-scripts-asuswrt-merlin
 ```
-This script project is small and should load quickly. Before router firmware
-can be built using the scripts, the clone of asuswrt-merlin must complete and
-several additional Ubuntu packages also must be obtained. Run this script to
-obtain and install the required Ubuntu packages:
+This script project is small and should load quickly. Before router firmware can
+be built using the scripts, the git clone of asuswrt-merlin must complete and
+several additional Ubuntu packages also must be obtained. Run this script (in
+another tty if necessary) to obtain and install the required Ubuntu packages:
 ```
 $ cd ~/asuswrt-merlin/docker-scripts-asuswrt-merlin
 $ sudo ./linux-apt-setup.sh
@@ -120,17 +118,15 @@ that will be configured to access the built firmware files. This path must exist
 on the host.
 
 Then back on the running guest O/S (Ubuntu Xenial) choose the VirtualBox menu
-item along the top called "Devices" and click the item in the list named "Insert
-Guest Additions CD Image...". Dismiss any errors or warning messages if they
-occur. Then select menu item "Devices" again and this time click "Shared
-Folders" followed by "Shared Folders Settings...". In the "Shared Folders"
-dialog, click the "+" icon having the pop-up description "Adds new shared
-folder".  In the "Add Share" dialog, enter the host directory that was chosen or
-created above in "Folder Path", e.g., c:\Users\<yourName>\router-files. Then
-change the the next item "Folder Name" from router-files to shared. (The build
-script requires the "Folder Name" always be "shared" to successfully mount the
-vboxsf filesystem device.) Finally, select the "Make Permanent" item and click
-OK twice to complete the setup and return to running Ubuntu.
+item along the top called "Devices" and click "Shared Folders" followed by
+"Shared Folders Settings...". In the "Shared Folders" dialog, click the "+" icon
+having the pop-up description "Adds new shared folder".  In the "Add Share"
+dialog, enter the host directory that was chosen or created above in "Folder
+Path", e.g., c:\Users\<yourName>\router-files. Then change the the next item
+"Folder Name" from router-files to shared. (The build script requires the
+"Folder Name" always have the name "shared" to successfully mount the vboxsf
+filesystem device.) Finally, select the "Make Permanent" item and click OK twice
+to complete the setup and return to running Ubuntu.
 
 After asuswrt-merlin and scripts projects are cloned and the require Ubuntu
 packages are installed and (optionally) after "guest additions" are configured,
@@ -140,18 +136,31 @@ No pull or other git command occurs that contact the asuswrt-merlin git
 repository in the build script. So if a pull or other git command is needed to
 set up the local tree, it must be done manually before running the script.
 
-One or more or all supported routers can be built with a single script execution
-as shown in these examples:
+One or more or all supported router models can be built with a single script
+execution as shown in these examples:
 ```
-$ ./linux-build-asuswrt-merlin.sh clean rt-ac5300 cleankernel clean clean-src rt-ac56u
-$ ./linux-build-asuswrt-merlin.sh rt-n66u
-$ ./linux-build-asuswrt-merlin.sh all
+$ sudo ./linux-build-asuswrt-merlin.sh clean rt-ac5300 cleankernel clean clean-src rt-ac56u
+$ sudo ./linux-build-asuswrt-merlin.sh rt-n66u
+$ sudo ./linux-build-asuswrt-merlin.sh all
 ```
 See "./linux-build-asuswrt-merlin.sh help" for more details. Optional user
 selected "clean" action(s) must precede the router name being built. The "all"
 option automatically does pre-determined clean actions before each supported
 router is built and should be the only option when it is used.
 
+Sudo is required because root access is required to set symbolic links in /opt
+and to mount the shared outputs/ directory for accessing the generated router
+firmware file on the host O/S as described above. However, after these actions
+are accomplished at script startup, the script runs as a normal user to complete
+the build.
+
+Hint: It can take a long time to complete the script even when only one router
+model is built. To prevent the console from blanking after about 10 minutes
+the follow command can be entered (in a new tty if necessary, e.g.,
+RightCrtl-F6):
+```
+$ setterm -blank 0 -powerdown 0
+```
 It is important that asuswrt-merlin project be under git control since the
 "clean-src" option and "all" option require that portions of the source tree be
 deleted and "git checkout" occur. So, if these build options are used, make sure
@@ -170,5 +179,3 @@ linux-build-script-asuswrt-merlin.sh can also be used there in the same way as
 described above. Note: Setup of "Guest Addition" in VirtualBox for other
 distributions can differ from the Ubuntu method described above and is beyond
 the scope of this README.
-
-
