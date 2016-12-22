@@ -99,12 +99,12 @@ function do_docker_run() {
       --volume="${WORK_FOLDER}:${MROOT}" \
       ${IMAGE_NAME} \
       /bin/bash "/${MROOT}/$(basename `pwd`)/${BUILD_SCRIPT}" \
+	--host-uname "${HOST_UNAME}" \
         --group-id "${GROUP_ID}" \
 	--user-id "${USER_ID}" \
         --make-clean-target "${MAKE_CLEAN_TARGET}" \
         --make-cleankernel-target "${MAKE_CLEANKERNEL_TARGET}" \
         --restore-src-from-git "${RESTORE_SRC_FROM_GIT}" \
-	--host-uname "${HOST_UNAME}" \
         -- \
         --do-build-rt-n66u "${DO_BUILD_RT_N66U}" \
         --do-build-rt-ac66u "${DO_BUILD_RT_AC66U}" \

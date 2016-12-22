@@ -81,17 +81,25 @@ function create_switch_to_non_root_user {
     # after su below, runs as non-root user.
     ln -s ${MROOT}/tools/brcm /opt/brcm
     ln -s ${MROOT}/release/src-rt-6.x.4708/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3 /opt/brcm-arm
-    # Create non-root group and user. These match to user and group ids of the
-    # top level script user.
-    groupadd -f -g ${group_id} $NON_ROOT_GROUP
-    useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER
-    # Create the outputs directory and set the owner to non-root script runner.
-    # Won't matter if this is already done.
+    # Create the outputs/ directory. Won't matter if this is already done.
     mkdir -p ${OUTPUTS}
-    chown ${user_id}:${group_id} ${OUTPUTS}
-    # re-run this script as non-root user but with already "consumed" leading
-    # options stripped off. This does the bulk of the build.
-    exec su "$NON_ROOT_USER" -c "$0 $residue"
+    # If host is "Darwin", aka, OSX/MacOS, switch to non-root breaks build.
+    # Ok to just run with no switch since files owner at host remain owned by 
+    # script user and not root (unlike on $host_uname Linux). 
+    if [ "${host_uname}" == "Linux" ] ; then
+      # Create non-root group and user. These match user and group ids of the
+      # top level script user.
+      groupadd -f -g ${group_id} $NON_ROOT_GROUP
+      useradd -u ${user_id} -g $NON_ROOT_GROUP $NON_ROOT_USER
+      # set the outputs/ owner to non-root script runner.
+      chown ${user_id}:${group_id} ${OUTPUTS}
+      # re-run this script as non-root user but with already "consumed" leading
+      # options stripped off. This does the bulk of the build.
+      exec su "$NON_ROOT_USER" -c "$0 $residue"
+#    else
+      # No user switch for Darwin
+#exec "$0 $residue"
+    fi  
 }
 
 function build_router_fw {
@@ -138,6 +146,10 @@ residue=""
 while [ $# -gt 0 ]
 do
   case "$1" in
+    --host-uname)
+      host_uname="$2"
+      shift 2
+      ;;
     --group-id)
       group_id="$2"
       shift 2
@@ -159,10 +171,6 @@ do
       ;;
     --restore-src-from-git)
       restore_src_from_git="$2"
-      shift 2
-      ;;
-    --host-uname)
-      host_uname="$2"
       shift 2
       ;;
     --)
