@@ -2,7 +2,7 @@ This describes a way to build asuswrt-merlin on OSX using the same build script
 but using a separate Linux box as the docker host instead of using boot2docker or
 newer docker methods only on the OSX machine. This is probably mostly of 
 academic interest since the build can probably just be done on the linux machine
-as described in README.md with much less trouble.
+as described in README-docker.md with much less trouble.
 ```
 Symbols used in description below:
 OSX user name = auser
@@ -132,6 +132,6 @@ On OSX, exit the root shell and change to
 ```
 $ cd ~/auser/git-stuff/asuswrt-merlin/docker-scripts-asuswrt-merlin 
 ```
-and run build-asuswrt-merlin.sh as described in README.md to do the build
-on OSX using Linux as the docker host.
+and run docker-build-asuswrt-merlin.sh as described in README-docker.md to do
+the build on OSX using Linux as the docker host.
 

@@ -175,7 +175,7 @@ on to a "host" system is not relevant.
 This information and script can also be used on other linux distributions and
 versions with or without VirtualBox. A setup file to install the needed
 dependencies for Fedora is provided, linux-dnf-setup.sh and the build script
-linux-build-script-asuswrt-merlin.sh can also be used there in the same way as
+linux-build-asuswrt-merlin.sh can also be used there in the same way as
 described above. Note: Setup of "Guest Addition" in VirtualBox for other
 distributions can differ from the Ubuntu method described above and is beyond
 the scope of this README.

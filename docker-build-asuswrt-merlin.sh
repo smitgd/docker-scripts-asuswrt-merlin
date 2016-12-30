@@ -24,7 +24,7 @@ IFS=$'\n\t'
 
 CONTAINER_NAME=build-asuswrt-merlin
 IMAGE_NAME=asuswrt-merlin-addons
-BUILD_SCRIPT=build-script.sh
+BUILD_SCRIPT=docker-build-script.sh
 GROUP_ID=$(id -g)
 USER_ID=$(id -u)
 HOST_UNAME="$(uname)"
