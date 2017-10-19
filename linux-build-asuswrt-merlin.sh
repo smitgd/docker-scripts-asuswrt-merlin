@@ -88,22 +88,24 @@ function do_build_run() {
 function print_usage {
       echo
       echo "Build the asuswrt-merlin firmware for listed router(s)."
+      echo "Note: Run as normal user but sudo is required since script writes to /opt"
       echo "Usage:"
-      echo "    $0 [clean] [cleankernel] [clean-src] router ... | help | all"
+      echo "    sudo $0 [clean] [cleankernel] [clean-src] router ... | help | all"
       echo "    clean       Do \"make clean\" before router build"
       echo "    cleankernel Do \"make cleankernel\" before router build"
       echo "    clean-src   Do \"rm -r release/src/router ; git checkout release/src\""
       echo "                before router build. CAUTION: Deletes any uncommitted source"
       echo "                changes!"
-      echo "    help        Print this usage information"
-      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u. \"Clean\""
-      echo "                option(s) must be before router."
+      echo "    router      Router(s) to build, e.g., rt-ac5300 rt-ac56u."
+      echo "                Other option(s) must be before router."
       echo "    all         Build all routers: rt-n66u, rt-ac66u, rt-ac56u, rt-ac68u,"
       echo "                                   rt-ac87u, rt-ac3200, rt-ac88u, rt-ac3100,"
       echo "                                   rt-ac5300. Appropriate clean options will"
       echo "                                   automatically precede each router build."
       echo "                                   \"all\" option will also remove uncommited"
       echo "                                   source changes!"
+      echo "    help        Print this usage information"
+      echo ""
 }
 
 # ----- Parse actions and command line options. -----
