@@ -2,7 +2,7 @@ Script linux-build-asuswrt-merlin.sh assists with the asuswrt-merlin builds in a
 standardized enviroment (Ubuntu Xenial) using VirtualBox or directly on linux.
 A typical usage is to run VirtualBox on a windows host while running Ubuntu
 Xenial as the guest OS. The script also works when running directly (natively)
-on linux and has been tested on Fedora 23 and Debian Stretch.
+on linux and has been tested on Fedora 23 and 25 and Debian Stretch.
 
 Here are some example build environments that are possible using VirtualBox:
 ```

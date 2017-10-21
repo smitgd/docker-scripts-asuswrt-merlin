@@ -8,6 +8,7 @@
 # Developed on Linux (Fedora 23).
 # Also tested on:
 #   -Debian Stretch (a.k.a, Testing)
+#   -Fedora 25
 #
 # Prerequisites for build host:
 #
@@ -88,7 +89,7 @@ function do_build_run() {
 function print_usage {
       echo
       echo "Build the asuswrt-merlin firmware for listed router(s)."
-      echo "Note: Run as normal user but sudo is required since script writes to /opt"
+      echo "Note: Run as non-root user with sudo since script writes to /opt"
       echo "Usage:"
       echo "    sudo $0 [clean] [cleankernel] [clean-src] router ... | help | all"
       echo "    clean       Do \"make clean\" before router build"
