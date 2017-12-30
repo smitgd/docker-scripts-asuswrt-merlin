@@ -1,7 +1,7 @@
 Script linux-build-asuswrt-merlin.sh assists with the asuswrt-merlin builds in a
 standardized enviroment (Ubuntu Xenial) using VirtualBox or directly on linux.
 A typical usage is to run VirtualBox on a windows host while running Ubuntu
-Xenial as the guest OS. The script also works when running directly (natively)
+Xenial as the guest OS. The script also works when running directly (nativly)
 on linux and has been tested on Fedora 23 and 25 and Debian Stretch.
 
 Here are some example build environments that are possible using VirtualBox:
@@ -24,8 +24,8 @@ Windows versions 7 to 10 (tested on Windows 7 and 10 home editions).
 Download the desired Ubuntu Xenial ISO file. A full desktop version or a server
 version can be installed. A third smaller ISO file that does most of the install
 via the internet is also available and installs the server version. It can be
-found by seaching for "ubuntu xenial mini.iso". The larger desktop and server
-ISO's can also be found by seaching for "ubuntu xenial iso". Be sure to download
+found by searching for "ubuntu xenial mini.iso". The larger desktop and server
+ISO's can also be found by searching for "ubuntu xenial iso". Be sure to download
 the 64-bit ISO for the selected version.
 
 Go to VirtualBox site and download and install the 64-bit version for Windows,
@@ -37,7 +37,9 @@ For "Type" select "Linux" and for Version select "Ubuntu (64-bit)". (If only
 32-bit OS types appear, you probably need to reboot and access the bios
 setting and ensure that hardware virtualization is selected.)
 
-Next, a screen to allocate RAM memory to the virtual machine appears. The
+Click "Next" to continue. These instructions aren't for "Expert Mode".
+
+A screen to allocate RAM memory to the virtual machine appears. The
 default of 1024 MB is acceptable. More than that can be allocated within the
 "green" region and it may improve virtual machine performance. Click "Next".
 
@@ -49,37 +51,67 @@ installation or 40G for desktop and click "Create". Several minutes may be
 required to create and format the virtual disk.
 
 Next click the "Setting" icon and select "Storage". Select (highlight) the
-"Controller:IDE" item in the tree and click the "+" icon having the pop-up
-description "Adds optical drive". Navigate to the Ubuntu ISO file
-downloaded above (e.g., mini.iso) and open it.
+"Controller:IDE" item in the tree and click the "+" icon to the right having
+the pop-up description "Adds optical drive". Select "Choose disk" and navigate
+to the Ubuntu ISO file downloaded above (e.g., mini.iso) and open it and
+close the settings page with Ok.
 
-Now back on the VirtualBox program, click the green "Start" icon. This will
-boot the Ubuntu installation just opened above and a typical installation
-can begin choosing mostly defaults except for personalization items such as
-user name, password, timezone, keyboard type, etc. No need to encrypt or do
-special formatting or partitioning on the "disk".
+By default, the build scripts copy the resulting firmware file for each built
+router model into ~/asuswrt-merlin/outputs/ folder of the linux virtual machine
+and are not visible on the host O/S (e.g., Window). If visiblity of outputs/
+on the host is wanted then "Guest Additions" must be enabled on VirtualBox as
+described in the following paragraphs. The Ubuntu package that supports this
+is always installed by the linux-apt-setup.sh script, but it does not enable it.
+
+To enable host visibility of firmware files, first, on the host O/S (e.g.,
+Windows) create or choose a location such as c:\Users\<yourName>\router-files
+that will be configured to contain the built firmware files. This path must exist
+on the host and be a normal writable directory.
+
+Now again in the VirtualBox "Settings" icon for the new virtual machine, choose
+"Shared Folers". In the "Shared Folders" dialog, click the "+" icon
+having the pop-up description "Adds new shared folder".  In the "Add Share"
+dialog, enter or navigate to the host directory that was chosen or created above
+in "Folder Path", e.g., c:\Users\<yourName>\router-files. Then change the next
+item "Folder Name" to "shared" -- without quotes. (The build script requires
+the "Folder Name" have the name "shared" to successfully mount the vboxsf
+filesystem device.) Don't select Read-only or Auto-mount. Do select "Make Permanent"
+if that option appears; if it doesn't appear, it is selected by default. Finally,
+click OK twice to complete the setup and return to VirtualBox main screen.
+
+Note: The use of "Guest Additions" requires an additional virtual machine
+restart after guest-utils and other packages required for router builds are all
+installed -- see below.
+
+Now back on the VirtualBox main screen, click the green "Start" icon. This will
+boot the Ubuntu installation iso just configured above and a typical installation
+can begin. Defaults are acceptable except for maybe locale and personalization
+items such as user name, password, keyboard type, etc. No need to encrypt or do
+non-default special formatting or partitioning on the "disk" unless this is
+wanted for other reasons.
 
 When the installation is complete, a reboot will be required. Some installation
 programs automatically remove (eject) the installation ISO . If not
-automatically removed, to avoid re-entering the installation program again, the
+automatically removed and on reboot the installation program starts again, the
 installation ISO must be manually removed. This is accomplished by first
 "powering down" the virtual machine by selecting the VirtualBox menu item "File"
 followed by "Close..." then select "Power off the machine" and click OK. At the
-main VirtualBox program click the "Settings" icon and then again select the
+main VirtualBox screen click the "Settings" icon and then again select the
 "Storage" item from the list. In the tree select the installation ISO (e.g.,
-mini.iso) and then click the "-" icon having the pop-up description "Removes
-selected storage attachment" and complete the removal by clicking OK.  Then,
-back at the VirtualBox program, click "Start" again and the just installed
-Ubuntu Xenial will boot.
+mini.iso) and then click the "-" icon along the bottom having the pop-up
+description "Removes selected storage attachment" and complete the removal by
+clicking OK. Then, back at the VirtualBox program, click "Start" again and the
+just installed Ubuntu Xenial will boot.
 
 The following instructions assume that the server version is installed so only
 simple 100-column "tty" terminals are available.  Full desktop GUI operational
 description is beyond the scope of this README, however it can still be used if
 preferred and if installed.
 
-Log in to Ubuntu Xenial at the prompt with your non-root user name. If the
+Log in to Ubuntu Xenial at the prompt with your user name. If the
 default server installation does not include git, it is needed to obtain the
-projects.  So, you must manually install it:
+projects (i.e., if command "which git" returns empty).  So, you must manually
+install it:
 ```
 $ cd
 $ sudo apt-get install git
@@ -88,53 +120,44 @@ Next clone the asuswrt-merlin project from the repository, e.g.,:
 ```
 $ git clone https://github.com/RMerl/asuswrt-merlin
 ```
-Depending on network and processor speeds, this may take some time. While
+Depending on network and processor speeds, this may take a while. While
 project cloning occurs you can open another terminal and obtain this script
-project, via another git clone:
+project, via another git clone and, if clone above still going, do ctrl-alt-F2
+(or RightCtrl-F2) and log in to a new "tty" and run these commands.
 ```
-$ # If clone above still going, do ctrl-alt-F2 (or RightCtrl-F2) and log in to
-$ # the new "tty".
 $ cd asuswrt-merlin
 $ git clone https://github.com/smitgd/docker-scripts-asuswrt-merlin
 ```
 This script project is small and should load quickly. Before router firmware can
 be built using the scripts, the git clone of asuswrt-merlin must complete and
-several additional Ubuntu packages also must be obtained. Run this script (in
-another tty if necessary) to obtain and install the required Ubuntu packages:
+several additional Ubuntu packages also must be obtained. Run this script in
+another tty if asuswrt-merlin clone is still in progress to obtain and install
+the required Ubuntu packages:
 ```
 $ cd ~/asuswrt-merlin/docker-scripts-asuswrt-merlin
 $ sudo ./linux-apt-setup.sh
 ```
-By default, the build scripts copy the resulting firmware file for each built
-router model into ~/asuswrt-merlin/outputs/ folder and are not visible on
-the host O/S (e.g., Window). If visiblity of outputs/ on the host is wanted
-then "Guest Additions" must be enabled on VirtualBox. The Ubuntu package that
-supports this is installed by the linux-apt-setup.sh script, but it does not
-enable it.
-
-To enable host visibility of firmware files, first, on the host O/S (e.g.,
-Windows) create or choose a location such as c:\Users\<yourName>\router-files
-that will be configured to access the built firmware files. This path must exist
-on the host.
-
-Then back on the running guest O/S (Ubuntu Xenial) choose the VirtualBox menu
-item along the top called "Devices" and click "Shared Folders" followed by
-"Shared Folders Settings...". In the "Shared Folders" dialog, click the "+" icon
-having the pop-up description "Adds new shared folder".  In the "Add Share"
-dialog, enter the host directory that was chosen or created above in "Folder
-Path", e.g., c:\Users\<yourName>\router-files. Then change the the next item
-"Folder Name" from router-files to shared. (The build script requires the
-"Folder Name" always have the name "shared" to successfully mount the vboxsf
-filesystem device.) Finally, select the "Make Permanent" item and click OK twice
-to complete the setup and return to running Ubuntu.
-
 After asuswrt-merlin and scripts projects are cloned and the require Ubuntu
-packages are installed and (optionally) after "guest additions" are configured,
-router firmware build can begin.
+packages are installed, router firmware build can begin.
+
+But first, if "Guest Additions" (discussed above) are used so the build outputs
+can be accessed from the VirtualBox host (e.g., Windows), another virtual machine
+restart is needed before running the build script to ensure vboxfs filesystem is
+mounted during the build: select the VirtualBox menu item "File" followed by
+"Close..." then select "Power off the machine" and click OK. Then run the virtual
+machine again from the main VirtualBox window. Log-in and change to the script
+directory.
+```
+$ cd
+$ cd asuswrt-merlin/docker-scripts-asuswrt-merlin
+```
 
 No pull or other git command occurs that contact the asuswrt-merlin git
 repository in the build script. So if a pull or other git command is needed to
-set up the local tree, it must be done manually before running the script.
+set up the local tree, it must be done manually, as described above, before
+running the linux-build-asuswrt-merlin.sh script. Also, future builds will occur
+from this point and don't require all of the above set-up activities again unless
+the configured virtual machine has been removed.
 
 One or more or all supported router models can be built with a single script
 execution as shown in these examples:
@@ -145,7 +168,7 @@ $ sudo ./linux-build-asuswrt-merlin.sh all
 ```
 See "./linux-build-asuswrt-merlin.sh help" for more details. Optional user
 selected "clean" action(s) must precede the router name being built. The "all"
-option automatically does pre-determined clean actions before each supported
+option automatically does predetermined clean actions before each supported
 router is built and should be the only option when it is used.
 
 Sudo is required because root access is required to set symbolic links in /opt
@@ -155,8 +178,8 @@ are accomplished at script startup, the script runs as a normal user to complete
 the build.
 
 Hint: It can take a long time to complete the script even when only one router
-model is built. To prevent the console from blanking after about 10 minutes
-the follow command can be entered (in a new tty if necessary, e.g.,
+model is built. To prevent the virtual machine console from blanking after about
+10 minutes the following command can be entered (in a new tty if necessary, e.g.,
 RightCrtl-F6):
 ```
 $ setterm -blank 0 -powerdown 0
