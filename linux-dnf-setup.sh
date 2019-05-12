@@ -10,5 +10,5 @@ dnf update
 # router build need all these except for git and vim) 
 dnf -y install git vim autoconf automake libtool libtool-ltdl \
 libtool-ltdl-devel ncurses-devel glibc.i686 elfutils-libelf.i686 \
-libstdc++.i686 bison flex  gettext-devel gperf byacc intltool gcc-c++ \ 
+libstdc++.i686 bison flex  gettext-devel gperf byacc intltool gcc-c++ \
 zlib-devel imake
